@@ -1,12 +1,11 @@
 name: Update Naukri Resume
 
 on:
+  # GitHub cron is UTC (no timezone field). IST is UTC+5:30.
+  # 09:00 IST -> 03:30 UTC, 13:00 IST -> 07:30 UTC.
   schedule:
-    # FALLBACK ONLY
-    # GitHub may delay scheduled workflows.
-    # This is intentionally kept as a backup trigger. Remobe the comment to enable the trigger
-    #- cron: '17 09 * * *'
-    #  timezone: 'Asia/Kolkata'
+    - cron: '30 3 * * *'
+    - cron: '30 7 * * *'
 
   # Primary trigger used by the iPhone automation
   workflow_dispatch:
