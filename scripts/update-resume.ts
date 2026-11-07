@@ -5,7 +5,7 @@ import path from 'node:path';
 const PROFILE_URL = 'https://www.naukri.com/mnjuser/profile';
 
 const RESUME_PATH = path.resolve(
-  process.env.RESUME_PATH ?? 'resume/your_resume.pdf'  //Your Resume Name here
+  process.env.RESUME_PATH ?? 'resume/resume.pdf'  //Your Resume Name here
 );
 
 const AUTH_STATE_PATH = path.resolve(
