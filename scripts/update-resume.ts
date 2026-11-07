@@ -162,12 +162,11 @@ async function main(): Promise<void> {
 
   const browser = await firefox.launch({
     headless,
-
-    // Keep Firefox stable in CI.
-    args: [
-      '--disable-dev-shm-usage',
-      '--disable-gpu',
-    ],
+    firefoxUserPrefs: {
+      // GitHub-hosted runners often reset Firefox's HTTP/3 (QUIC) connections.
+      'network.http.http3.enable': false,
+      'network.dns.disableIPv6': true,
+    },
   });
 
   const context = await browser.newContext({
@@ -201,17 +200,35 @@ async function main(): Promise<void> {
       }
     });
 
-    try {
-      await page.goto(PROFILE_URL, {
-        waitUntil: 'domcontentloaded',
-        timeout: 60_000,
-      });
-    } catch (error) {
-      log(`Navigation failed: ${String(error)}`);
+    const attempts = 3;
+    let opened = false;
 
-      await captureDebugArtifacts(page);
+    for (let attempt = 1; attempt <= attempts; attempt++) {
+      try {
+        log(`Opening profile, attempt ${attempt} of ${attempts}.`);
+        await page.goto(PROFILE_URL, {
+          waitUntil: 'domcontentloaded',
+          timeout: 60_000,
+        });
+        opened = true;
+        break;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        log(`Navigation failed: ${message}`);
 
-      throw error;
+        const retryable = /NS_ERROR_NET_RESET|NS_ERROR_NET_INTERRUPT|NS_ERROR_CONNECTION_REFUSED|Timeout/i.test(message);
+
+        if (!retryable || attempt === attempts) {
+          await captureDebugArtifacts(page);
+          throw error;
+        }
+
+        await page.waitForTimeout(3_000);
+      }
+    }
+
+    if (!opened) {
+      throw new Error(`Could not open ${PROFILE_URL}`);
     }
 
     await page

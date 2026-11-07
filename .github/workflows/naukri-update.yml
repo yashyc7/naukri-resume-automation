@@ -280,6 +280,24 @@ jobs:
       # UPDATE NAUKRI
       # ==========================================================
 
+      - name: Check that Naukri accepts the runner network
+        run: |
+          set +e
+          curl -I --http1.1 --max-time 30 -sS \
+            -o /tmp/naukri-headers.txt \
+            -w "curl_exit=%{exitcode} http_code=%{http_code}\n" \
+            https://www.naukri.com/mnjuser/profile
+          status=$?
+          set -e
+          if [ -f /tmp/naukri-headers.txt ]; then
+            head -n 15 /tmp/naukri-headers.txt
+          fi
+          if [ "$status" -ne 0 ]; then
+            echo "The GitHub runner could not keep a connection to Naukri."
+            echo "Naukri is refusing this datacenter network. Run the workflow on a self-hosted runner on your PC."
+            exit 1
+          fi
+
       - name: Update Naukri resume
         env:
           HEADLESS: 'false'
@@ -287,6 +305,7 @@ jobs:
           AUTH_STATE_PATH: 'playwright/.auth/state.json'
           ARTIFACT_DIR: 'artifacts'
           DEBUG: 'pw:browser'
+          MOZ_DISABLE_CONTENT_SANDBOX: '1'
 
         run: |
           xvfb-run --auto-servernum npm run update
